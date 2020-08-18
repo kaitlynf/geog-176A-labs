@@ -67,6 +67,11 @@ knitr::kable(most_new_cases,
              caption = "Most New Cases by California Counties",
              col.names = c("County", "New Cases"))
 ```
+```{r}
+#The counties with the most cumulative cases in California are Los Angeles, Riverside, Orange, San Bernardino, and San Diego. 
+#The counties with the most new cases Los Angeles, Riverside, San Bernardino, Fresno, and Sacreamento. 
+```
+
 
 #Population Estimate Data
 ```{r}
@@ -121,9 +126,13 @@ covidPop %>%
     select(date) %>%
   filter(date >= max(date) - 14)
 ```
+```{r}
+#Difficulty completing this question due to trouble with filtering the date. 
+```
+
 
 ## Question 2 
-#finding average of 7-days of new cases per capita
+#finding average of 7-days of new cases
 ```{r}
 covid %>%
   group_by(state, date) %>%
@@ -145,6 +154,10 @@ covid_step1 %>%
        x = "Date", y = "New Cases") + 
   theme(aspect.ratio = .7)
 ```
+```{r}
+#The map shows the seven day average of new cases in four states: California, Florida, Louisiana, and New York. 
+```
+
 #finding average of 7-days of new cases per capita 
 ```{r}
 pop %>%
@@ -153,7 +166,6 @@ pop %>%
   filter(state %in% c("NY","CA","LA", "FL")) ->
   new_pop4
 ```
-
 
 ```{r}
 covid %>%
