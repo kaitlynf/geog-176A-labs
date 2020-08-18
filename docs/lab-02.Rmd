@@ -1,0 +1,179 @@
+---
+author: "Kaitlyn Fu"
+title: "Lab 2"
+output: 
+  html_document:
+    theme: "journal"
+---
+```{r}
+library(rmarkdown)
+```
+
+```{r}
+library(tidyverse)
+
+library(ggplot2)
+
+library(ggthemes)
+
+library(dplyr)
+```
+```{r}
+
+library(lubridate)
+```
+
+```{r}
+library(zoo)
+```
+
+## Question 1 
+# COVID Data
+```{r}
+url = 'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv'
+
+covid = read.csv(url)
+
+covid %>%
+  filter(state == "California") %>%
+  group_by(county) %>%
+  mutate(newCases = cases - lag(cases)) %>%
+  filter(date == max(date)) %>%
+  ungroup() ->
+  new_covid
+```
+
+#most cumulative cases
+```{r}
+new_covid %>%
+  filter(date == max(date)) %>%
+  slice_max(cases, n = 5) %>%
+  select("county", "cases") ->
+  most_cumulative_cases
+
+knitr::kable(most_cumulative_cases,
+             caption = "Most Cumulative Cases by California Counties",
+             col.names = c("County", "Cumulative Cases"))
+```
+# most new cases
+```{r}
+new_covid %>%
+  filter(date == max(date)) %>%
+  slice_max(newCases, n = 5) %>%
+  select(county, newCases) ->
+  most_new_cases
+
+knitr::kable(most_new_cases,
+             caption = "Most New Cases by California Counties",
+             col.names = c("County", "New Cases"))
+```
+
+#Population Estimate Data
+```{r}
+library(readxl)
+pop <- read_excel("~/github/geog-176A-labs/data/PopulationEstimates.xls", 
+    skip = 2)
+
+pop %>%
+select (fips = "FIPStxt", state = "State", "Area_Name", pop2019 = "POP_ESTIMATE_2019") %>%
+  mutate(fips = as.integer(fips)) %>%
+  filter(state == "CA") %>%
+  group_by(Area_Name) ->
+  new_pop
+```
+
+#Covid data and population data joined to create "covidPop"
+```{r}
+right_join(new_covid, new_pop, by = "fips") ->
+  covidPop
+```
+
+#most cumulative cases per capita
+```{r}
+covidPop %>%
+mutate(casesPerCapita = cases/pop2019) %>%
+  slice_max(casesPerCapita, n = 5) %>%
+  select(county, casesPerCapita) ->
+  cases_per_capita
+
+knitr::kable(cases_per_capita, 
+             caption = "Most Cumulative Cases Per Capita",
+             col.names = c("county", "Cases Per Capita"))
+```
+
+#most new cases per capita
+```{r}
+covidPop %>%
+mutate(newCasesPerCapita = newCases/pop2019) %>%
+  slice_max(newCasesPerCapita, n = 5) %>%
+  select(county, newCasesPerCapita) ->
+  new_cases_per_capita
+
+knitr::kable(new_cases_per_capita,
+             caption = "Most New Cases Per Capita",
+             colnames = c("county", "New Cases Per Capita"))
+```
+
+#Covid cases in the last 14 days 
+```{r}
+covidPop %>%
+  mutate(date = as.Date(date)) %>%
+    select(date) %>%
+  filter(date >= max(date) - 14)
+```
+
+## Question 2 
+#finding average of 7-days of new cases per capita
+```{r}
+covid %>%
+  group_by(state, date) %>%
+  summarize(cases = sum(cases)) %>%
+  ungroup() %>%
+  filter(state %in% c("New York", "California", "Louisiana", "Florida")) %>%
+  group_by(state) %>%
+  mutate(newCases = cases - lag(cases)) %>%
+  mutate(avg = zoo::rollmean(newCases, 7, fill = NA, allign = "right")) ->
+  covid_step1 
+
+covid_step1 %>%
+  ggplot(aes(x = date, group = 1)) + 
+  geom_col(aes(y = newCases), col = NA, fill = "#F5B8B5") +
+  geom_line(aes(y = avg), col = "blue", size = 1) + 
+  facet_wrap(~state) + 
+  ggthemes::geom_rangeframe() +
+  labs(title = "Seven Days Average of New Cases",
+       x = "Date", y = "New Cases") + 
+  theme(aspect.ratio = .7)
+```
+#finding average of 7-days of new cases per capita 
+```{r}
+pop %>%
+  select (fips = "FIPStxt", state = "State", "Area_Name", pop2019 = "POP_ESTIMATE_2019") %>%
+  mutate(fips = as.integer(fips)) %>%
+  filter(state %in% c("NY","CA","LA", "FL")) ->
+  new_pop4
+```
+
+
+```{r}
+covid %>%
+  filter(state %in% c("New York", "California", "Louisiana", "Florida")) %>%
+  group_by(state)%>%
+  mutate(newCases = cases - lag(cases)) %>%
+  ungroup() ->
+  new_covid4
+```
+
+```{r}
+right_join(new_covid4, new_pop4, by = "fips") -> covidPop4
+```
+
+```{r}
+covidPop4 %>%
+  group_by(state.x, date) %>%
+  mutate(newCasesPerCapita4 = newCases/pop2019) %>%
+   mutate(avg4 = zoo::rollmean(newCasesPerCapita4, 7, fill = NA, allign = "right"))
+```
+
+
+
