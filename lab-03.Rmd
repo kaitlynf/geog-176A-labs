@@ -21,7 +21,6 @@ library(rnaturalearthdata)
 library(gghighlight)
 library(ggrepel)
 library(knitr)
-install.packages("kableExtra")
 library(kableExtra)
 ```
 
