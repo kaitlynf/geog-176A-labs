@@ -1,0 +1,124 @@
+---
+title: "Geography 176A"
+author: "Kaitlyn Fu"
+subtitle: 'Lab 04: Tesselations and Point-in-Polygon'
+output:
+  html_document:
+    theme: journal
+---
+
+```{r}
+#packages 
+library(tidyverse)
+
+library(ggplot2)
+
+library(sf)
+
+library(rmapshaper)
+```
+
+## Question 1
+#Create conus counties and county centroid (1.1 and 1.2)
+```{r}
+USAboundaries::us_counties() %>%
+  filter(!state_name %in% c("Alaska", "Hawaii", "Puerto Rico")) %>%
+  st_transform(5070) ->
+  counties
+
+st_centroid(counties) %>%
+  st_union() ->
+  cent_counties
+```
+
+#Tessellation and coverage (1.3 and 1.4)
+```{r}
+#voroni tessellation
+st_voronoi(cent_counties) %>%
+  st_cast() %>%
+  st_as_sf() %>%
+  mutate(id = 1:n()) ->
+  v_grid
+
+st_intersection(v_grid, st_union(counties)) ->
+  v_grid
+
+mapview::npts(v_grid)
+
+rmapshaper::ms_simplify(v_grid, keep = .01) ->
+  v_grid_simp
+
+mapview::npts(v_grid_simp)
+```
+```{r}
+#triangulated tessellation
+st_triangulate(cent_counties) %>%
+  st_cast() %>%
+  st_as_sf() %>%
+  mutate(id = 1:n()) ->
+  t_grid
+
+st_intersection(t_grid, st_union(counties)) ->
+  t_grid
+
+mapview::npts(t_grid)
+
+rmapshaper::ms_simplify(t_grid, keep = .01) ->
+  t_grid_simp
+
+mapview::npts(t_grid_simp)
+```
+```{r}
+#grid coverage
+st_make_grid(counties, n = c(70, 50)) %>%
+  st_as_sf() %>%
+  mutate(id = 1:n()) ->
+  sq_grid
+```
+
+```{r}
+#hex coverage
+st_make_grid(counties, n = c(70, 50), square = FALSE) %>%
+  st_as_sf() %>%
+  mutate(id = 1:n()) ->
+  hex_grid
+```
+
+#Create a function (1.6)
+```{r}
+#ggplot function
+plot_tess = function(data, title){
+  ggplot() +
+    geom_sf(data = data, fill = "white", col = "navy", size = .2) +
+    theme_void() +
+    labs(title = title, caption = paste("This tesselation has:", nrow(data), "tiles" ))
+}
+```
+
+#Plot (1.7)
+```{r}
+#original county data 
+plot_tess(counties, "counties")
+```
+
+```{r}
+#grid coverage 
+plot_tess(sq_grid, "square grid coverage")
+```
+
+```{r}
+#hex coverage
+plot_tess(hex_grid, "hexagonal grid coverage")
+```
+
+```{r}
+#voroni 
+plot_tess(v_grid_simp, "voroni tessellation")
+```
+
+```{r}
+#triangulated
+plot_tess(t_grid_simp, "triangulated tessellation")
+```
+
+
