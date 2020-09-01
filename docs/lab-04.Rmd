@@ -7,7 +7,7 @@ output:
     theme: journal
 ---
 
-```{r}
+```{r, message=FALSE, results=FALSE, warning=FALSE}
 #packages 
 library(tidyverse)
 
@@ -24,7 +24,7 @@ library(readxl)
 
 ## Question 1
 #Create conus counties and county centroid (1.1 and 1.2)
-```{r}
+```{r, warning=FALSE}
 USAboundaries::us_counties() %>%
   filter(!state_name %in% c("Alaska", "Hawaii", "Puerto Rico")) %>%
   st_transform(5070) ->
@@ -36,7 +36,7 @@ st_centroid(counties) %>%
 ```
 
 #Tessellation and coverage (1.3 and 1.4)
-```{r}
+```{r, warning=FALSE}
 #voronoi tessellation
 st_voronoi(cent_counties) %>%
   st_cast() %>%
@@ -54,7 +54,7 @@ rmapshaper::ms_simplify(v_grid, keep = .01) ->
 
 mapview::npts(v_grid_simp)
 ```
-```{r}
+```{r, warning=FALSE}
 #triangulated tessellation
 st_triangulate(cent_counties) %>%
   st_cast() %>%
@@ -182,7 +182,7 @@ knitr::kable(tess_summary,
 -The voronoi tessellation and triangulated tessellation above are both simplified. The voronoi tessellation is the most similar to the original counties coverage. Triangulated tessellation has the most amount of features but is more accurate. 
 
 ##Question 3
-```{r}
+```{r, warning=FALSE}
 #loading dam data (3.1)
 read_excel("~/github/geog-176A-labs/data/NID2019_U.xlsx") %>%
   filter(!is.na(LATITUDE)) %>%
@@ -205,7 +205,7 @@ point_in_polygon = function(points, polygon, group){
 ```
 
 
-```{r}
+```{r, results="hide"}
 #apply PIP to five tessellations (3.3)
 point_in_polygon(NID, counties, "name")
 
@@ -250,12 +250,15 @@ point_in_polygon(NID, hex_grid, "id") %>%
 ```
 
 #Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why? (3.6)
+
 - Being able to visualize the point counts on different tessellated surfaces show how the object coverage can look significantly different based on how polygons are shown. 
+
 - MAUP problem is of statistical bias, where data can be interpreted in different ways based on what spatial shape and layout is given. 
+
 - I would use the hexagonal grid because it's represented on equal area instead of relying on points for calculating the polygons. Unlike the square grid, it fits curved surfaces better and reduce edge effects. 
 
 ##Question 4
-#The four dam purposes I choose are recreation (R), navigation (N), debris control (D), and water supply(S). I am interested in analyzing dams with recreation as its main purpose because I was surprised by how it is the most common. I am also interested in analyzing dams with navigation, debris control, and water supply as its purpose because I thought they would be more common. 
+- The four dam purposes I choose are recreation (R), navigation (N), debris control (D), and water supply(S). I am interested in analyzing dams with recreation as its main purpose because I was surprised by how it is the most common. I am also interested in analyzing dams with navigation, debris control, and water supply as its purpose because I thought they would be more common. 
 
 ```{r}
 #filtering dam purposes (4.1)
