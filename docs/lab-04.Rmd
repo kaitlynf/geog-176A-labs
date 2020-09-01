@@ -16,6 +16,10 @@ library(ggplot2)
 library(sf)
 
 library(rmapshaper)
+
+library(kableExtra)
+
+library(readxl)
 ```
 
 ## Question 1
@@ -33,7 +37,7 @@ st_centroid(counties) %>%
 
 #Tessellation and coverage (1.3 and 1.4)
 ```{r}
-#voroni tessellation
+#voronoi tessellation
 st_voronoi(cent_counties) %>%
   st_cast() %>%
   st_as_sf() %>%
@@ -112,8 +116,8 @@ plot_tess(hex_grid, "hexagonal grid coverage")
 ```
 
 ```{r}
-#voroni 
-plot_tess(v_grid_simp, "voroni tessellation")
+#voronoi 
+plot_tess(v_grid_simp, "voronoi tessellation")
 ```
 
 ```{r}
@@ -121,4 +125,197 @@ plot_tess(v_grid_simp, "voroni tessellation")
 plot_tess(t_grid_simp, "triangulated tessellation")
 ```
 
+## Question 2 
+#create a function to summarize tessellations
+```{r}
+tess_features = function(data, title){
+  df = data.frame(row.names = title,
+                  mean_area = units::set_units((st_area(data)), "km^2") %>%
+                    units::drop_units() %>%
+                    head(n = 1),
+                  total_area = units::set_units((sum(st_area(data))), "km^2") %>%
+                    units::drop_units() %>%
+                    head(n = 1),
+                  n_features = count(data, "id") %>%
+                    st_drop_geometry() %>%
+                    select(n),
+                  standard_dev = sd(st_area(data)))
+  return(df)
+}
+```
+
+```{r}
+#2.2
+tess_features(counties, "original counties summary")
+
+tess_features(sq_grid, "square grid summary")
+
+tess_features(hex_grid, "hexagonal grid summary")
+
+tess_features(v_grid_simp, "voronoi tessellation summary")
+
+tess_features(t_grid_simp, "triangulated tessellation summary")
+```
+
+```{r}
+#2.3 
+tess_summary = bind_rows(
+  tess_features(counties, "original counties summary"), 
+  tess_features(sq_grid, "square grid summary"), 
+  tess_features(hex_grid, "hexagonal grid summary"), 
+  tess_features(v_grid_simp, "voronoi tessellation summary"), 
+  tess_features(t_grid_simp, "triangulated tessellation summary"))
+```
+
+```{r}
+#table with the five summaries (2.4)
+knitr::kable(tess_summary,
+             caption = "Tessellation Summary",
+             col.names = c("Mean Area in km^2", "Total Area in km^2", "Number of Features", "Standard Deviation")) %>%
+  kable_styling(bootstrap_options = "striped", font_size = 15)
+```
+
+#comment on the traits of each tessellation (2.5)
+
+-Square grid and hexagonal grid has the least amount of features since they are both pretty simple, easy to assemble and equally spread out. Hexagonal grid would be better for mapping large areas since it fits curve surface better. 
+
+-The voronoi tessellation and triangulated tessellation above are both simplified. The voronoi tessellation is the most similar to the original counties coverage. Triangulated tessellation has the most amount of features but is more accurate. 
+
+##Question 3
+```{r}
+#loading dam data (3.1)
+read_excel("~/github/geog-176A-labs/data/NID2019_U.xlsx") %>%
+  filter(!is.na(LATITUDE)) %>%
+  st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326) %>%
+  st_transform(5070) %>%
+  st_filter(counties) ->
+  NID
+```
+
+```{r}
+#point-in-polygon function (3.2)
+point_in_polygon = function(points, polygon, group){
+  st_join(polygon, points) %>%
+    st_drop_geometry() %>%
+    count(get(group)) %>%
+    setNames(c(group, "n")) %>%
+    left_join(polygon, by = group) %>%
+    st_as_sf()
+}
+```
+
+
+```{r}
+#apply PIP to five tessellations (3.3)
+point_in_polygon(NID, counties, "name")
+
+point_in_polygon(NID, v_grid_simp, "id")
+
+point_in_polygon(NID, t_grid_simp, "id")
+
+point_in_polygon(NID, sq_grid, "id")
+
+point_in_polygon(NID, hex_grid, "id")
+```
+
+```{r}
+#function for plotting PIP (3.4)
+plot_pip = function(data, title){
+  ggplot() +
+    geom_sf(data = data, aes(fill = log(n)), col = NA) +
+    scale_fill_viridis_b() +
+    theme_void() +
+    labs(title = title,
+         caption = paste("Dams:", sum(data$n)))
+}
+```
+
+```{r}
+#plot the five tessellations (3.5)
+point_in_polygon(NID, counties, "name") %>%
+  plot_pip(., "Dam Locations on Original Counties Coverage")
+
+point_in_polygon(NID, v_grid_simp, "id") %>%
+  plot_pip(., "Dam Locations on Voronoi Tessellation")
+
+point_in_polygon(NID, t_grid_simp, "id") %>%
+  plot_pip(., "Dam Locations on Triangulated Tessellation")
+
+point_in_polygon(NID, sq_grid, "id") %>%
+  plot_pip(., "Dam Locations on Square Grid")
+
+point_in_polygon(NID, hex_grid, "id") %>%
+  plot_pip(., "Dam Locations on Hexagonal Grid")
+
+```
+
+#Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why? (3.6)
+- Being able to visualize the point counts on different tessellated surfaces show how the object coverage can look significantly different based on how polygons are shown. 
+- MAUP problem is of statistical bias, where data can be interpreted in different ways based on what spatial shape and layout is given. 
+- I would use the hexagonal grid because it's represented on equal area instead of relying on points for calculating the polygons. Unlike the square grid, it fits curved surfaces better and reduce edge effects. 
+
+##Question 4
+#The four dam purposes I choose are recreation (R), navigation (N), debris control (D), and water supply(S). I am interested in analyzing dams with recreation as its main purpose because I was surprised by how it is the most common. I am also interested in analyzing dams with navigation, debris control, and water supply as its purpose because I thought they would be more common. 
+
+```{r}
+#filtering dam purposes (4.1)
+NID %>%
+ filter(grepl("S", PURPOSES)) ->
+  water_supply
+
+NID %>%
+  filter(grepl("R", PURPOSES)) ->
+  recreation
+
+NID %>%
+  filter(grepl("N", PURPOSES)) ->
+  navigation
+
+NID %>%
+  filter(grepl("D", PURPOSES)) ->
+  debris_control
+```
+
+```{r}
+#apply dam purposes through PIP. My elected tessellation is hexagonal grid. (4.2)
+point_in_polygon(water_supply, hex_grid, "id") 
+
+point_in_polygon(recreation, hex_grid, "id") 
+
+point_in_polygon(navigation, hex_grid, "id") 
+
+point_in_polygon(debris_control, hex_grid, "id") 
+```
+
+```{r}
+#function for plotting (4.2)
+plot_pip_2 = function(data, title){
+  ggplot() +
+    geom_sf(data = data, aes(fill = log(n)), col = NA) +
+    scale_fill_viridis_b() +
+    gghighlight::gghighlight(n > mean(n) + sd(n)) + 
+    theme_void() +
+    labs(title = title,
+         caption = paste("Dams:", sum(data$n)))
+}
+```
+
+```{r}
+#plotting dam purposes on hexagonal grid tessellation 
+point_in_polygon(water_supply, hex_grid, "id") %>%
+    plot_pip_2(., "Dam Locations with Water Supply Purpose")
+
+point_in_polygon(recreation, hex_grid, "id") %>%
+    plot_pip_2(., "Dam Locations with Recreation Purpose")
+
+point_in_polygon(navigation, hex_grid, "id") %>%
+    plot_pip_2(., "Dam Locations with Navigation Purpose")
+
+point_in_polygon(debris_control, hex_grid, "id") %>%
+    plot_pip_2(., "Dam Locations with Debris Control Purpose")
+```
+
+#Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coiencide with other geogaphic factors such as river systems, climate, ect?
+
+- I chose the hexagonal grid as my tessellation to plot the dam locations. The dam locations make sense to me because I can see how geographical and climate features can affect these locations. For example, dams built with navigation purposes can be found mainly near the Mississippi River. 
 
