@@ -1,0 +1,229 @@
+---
+title: "Geography 176A"
+author: "Kaitlyn Fu"
+subtitle: 'Lab 05: Rasters & Remote Sensing'
+output:
+  html_document:
+    theme: journal
+---
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+library(raster) # Raster Data handling
+library(tidyverse) # Data Manipulation
+library(getlandsat) # keyless Landsat data (2013-2017)
+library(sf) # Vector data processing
+library(mapview) # Rapid Interactive visualization
+library(knitr)
+library(kableExtra)
+```
+
+## AOI (question 1)
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+read_csv("~/github/geog-176A-labs/data/uscities.csv") %>%
+  st_as_sf(coords = c("lng", "lat"), crs = 4326) %>%
+  filter(city == "Palo") %>%
+  st_transform(5070) %>%
+  st_buffer(5000) %>%
+  st_bbox() %>%
+  st_as_sfc() %>%
+  st_as_sf() ->
+  AOI
+```
+
+## Question 2
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+#meta data (question 2, step 2)
+meta = read_csv("~/github/geog-176A-labs/data/palo-flood-scene.csv")
+
+files = lsat_scene_files(meta$download_url) %>%
+  filter(grepl(paste0('B', 1:6, ".TIF$", collapse = "|"), file)) %>%
+  arrange(file) %>%
+  pull(file)
+```
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+#download to cache location (step 3)
+st = sapply(files, lsat_image)
+
+stack(st) %>%
+  setNames(c(paste0("band", 1:6))) ->
+  s
+
+```
+What are the dimensions of your stacked image? What is the CRS? What is the cell resolution?
+
+- The dimensions of RasterStack 's' is 7811 x 7681 with 6 layers. The CRS is WGS84 in zone 15. The cell resolution is 30 x 30 
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+#crop to AOI (step 4)
+AOI %>%
+  st_transform(crs(s)) ->
+  cropper
+
+crop(s, cropper) ->
+  AOIr
+
+```
+What are the dimensions of your cropped image stack? What is the CRS? What is the cell resolution?
+
+- The dimensions of cropped RasterBrick is 340 x 346 with 6 layers. The CRS and cell resolutions remain the same at WGS84 and 30 x 30. 
+
+## Question 3
+```{r, warning=FALSE, results=FALSE, warning=FALSE}
+#rename the bands
+AOIr %>%
+    setNames(c("coastal", "blue", "green", "red", "NIR", "SWIR1")) ->
+  AOIr
+
+#four unique combos through RGB channel
+par(mfrow = c(2,2))
+plotRGB(AOIr, r = "red", g = "green", b = "blue")
+plotRGB(AOIr, r = "NIR", g = "red", b = "green")
+plotRGB(AOIr, r = "NIR", g = "SWIR1", b = "red")
+plotRGB(AOIr, r = "SWIR1", g = "green", b = "blue")
+dev.off()
+```
+
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+#color stretch 
+par(mfrow = c(2,2))
+plotRGB(AOIr, r = "red", g = "green", b = "blue", stretch="lin")
+plotRGB(AOIr, r = "NIR", g = "red", b = "green", stretch="hist")
+plotRGB(AOIr, r = "NIR", g = "SWIR1", b = "red", stretch="hist")
+plotRGB(AOIr, r = "SWIR1", g = "green", b = "blue", stretch="hist")
+dev.off()
+```
+color stretch is important because it can stretch the values and increase the contrast of the image. This can help us see spatial patterns better. 
+
+## Question 4 
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+#5 unique thresholding methods
+ndvi = (AOIr$NIR - AOIr$red) / (AOIr$NIR + AOIr$red)
+ndwi = (AOIr$green - AOIr$NIR) / (AOIr$green + AOIr$NIR)
+mndwi = (AOIr$green - AOIr$SWIR1) / (AOIr$green + AOIr$SWIR1)
+wri = (AOIr$green + AOIr$red) / (AOIr$NIR + AOIr$SWIR1)
+swi = 1/sqrt(AOIr$blue - AOIr$SWIR1)
+
+#stack raster layers into stack
+raster::stack(ndvi, ndwi, mndwi, wri, swi) %>%
+  setNames(c("ndvi", "ndwi", "mndwi", "wri", "swi")) ->
+  threshold
+```
+
+```{r, warning=FALSE}
+#plot 
+palette = colorRampPalette(c("blue", "white", "red"))
+plot(threshold, col = palette(256))
+
+```
+The five images give us the results of different index methods. For example, the normalized methods minimize variabilities and enhance spectral features that might be hard to observe otherwise. Our given water threshold tell us which areas retain water and which areas do not. For NDVI index, values less than 0 correspond to water in blue, and values more than 0 correspond to vegetation in red. for NDWI index and MNDWI index, values greater than 0 correspond to water presence in red and values less than 0 correspond to vegetation without water presence. The WRI index gives the water ratio by showing water presence in cells with values greater than 1 in red, and the SWI index does the same by showing water presence in cells with values less than 5. 
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+#raster thresholding
+thresholding1 = function(x){ifelse(x <= 0, 1, NA)}
+
+flood1 = calc(ndvi, thresholding1)
+
+thresholding2 = function(x){ifelse(x >= 0, 1, NA)}
+
+flood2 = calc(ndwi, thresholding2)
+
+flood3 = calc(mndwi, thresholding2)
+
+thresholding3 = function(x){ifelse(x >= 1, 1, NA)}
+
+flood4 = calc(wri, thresholding3)
+
+thresholding4 = function(x){ifelse(x <= 5, 1, NA)}
+
+flood5 = calc(swi, thresholding4)
+```
+
+```{r, warning=FALSE}
+raster::stack(flood1, flood2, flood3, flood4, flood5) %>%
+  setNames(c("ndvi", "ndwi", "mndwi", "wri", "swi")) ->
+  flood
+
+plot(flood, col = 'blue')
+```
+
+## Question 5
+```{r, warning=FALSE}
+set.seed(09062020)
+
+getValues(AOIr) %>%
+  dim()
+
+#There are 6 layers and 117640 cells in each.
+
+AOIvalues = getValues(AOIr) 
+```
+
+
+```{r, warning=FALSE}
+E = kmeans(na.omit(AOIvalues), 12, iter.max = 100)
+
+idx = which(!is.na(AOIvalues))
+
+kmeans_raster = AOIr$coastal
+
+values(kmeans_raster) = NA
+
+kmeans_raster[idx] = E$cluster
+
+plot(kmeans_raster)
+```
+
+```{r, warning=FALSE}
+#add kmeans raster to flood raster stack 
+table = table(values(flood1), values(kmeans_raster))
+which.max(table)
+
+f_threshold = function(x){ifelse(x != which.max(table), 0, 1)}
+
+kmeans_floodmask = calc(kmeans_raster, f_threshold)
+
+flood_rst = stack(flood, kmeans_floodmask)
+
+plot(flood_rst)
+```
+## Question 6
+```{r, warning=FALSE}
+#sum of each layer
+raster_sum = cellStats(flood_rst, stat = sum)
+#times 900 since resolution is 30 x 30   
+area = raster_sum*900
+
+raster_area = data.frame(raster_sum = cellStats(flood_rst, stat = sum),
+           area = raster_sum*900)
+           
+knitr::kable(raster_area,
+             caption = "total area of flooded cells",
+             col.names = c("sum of flooded cells", "area(m^2)")) %>%
+  kable_styling(bootstrap_options = "striped", font_size = 15)
+
+```
+
+```{r, warning=FALSE}
+flood_calc = calc(flood_rst, sum)
+
+plot(flood_calc, col = blues9)
+```
+
+
+```{r, warning=FALSE}
+flood_calc2 = flood_calc
+
+values(flood_calc2)[values(flood_calc2) <= 0] = NA
+
+mapview(flood_calc2)
+```
+
+
+Why are some of the cell values not an even number?
+
+- This could be attributed to the fact that flood values are continuous and can fluctuate therefore can have floating points with decimal values. 
+
+
+

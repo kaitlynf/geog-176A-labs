@@ -154,5 +154,18 @@ NID %>%
   filter(grepl("R", PURPOSES)) ->
   recreation
 
-point_in_polygon(recreation, sq_grid, "id") %>%
-  plot_pip()
+point_in_polygon(recreation, hex_grid, "id") %>%
+  plot_pip_2(., "Dam Locations with Recreation Purpose")
+
+plot_pip_2 = function(data, title){
+  ggplot() +
+    geom_sf(data = data, aes(fill = log(n)), col = NA) +
+    scale_fill_viridis_b() +
+    gghighlight::gghighlight(n > mean(n) + sd(n)) +
+    theme_void() +
+    labs(title = title,
+         caption = paste("Dams:", sum(data$n)))
+}
+
+counties
+NID
