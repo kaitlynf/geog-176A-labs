@@ -165,14 +165,17 @@ AOIvalues = getValues(AOIr)
 E = kmeans(na.omit(AOIvalues), 12, iter.max = 100)
 
 idx = which(!is.na(AOIvalues))
-
 kmeans_raster = AOIr$coastal
-
 values(kmeans_raster) = NA
-
 kmeans_raster[idx] = E$cluster
-
 plot(kmeans_raster)
+# with k = 7
+F = kmeans(na.omit(AOIvalues), 7, iter.max = 100)
+idx = which(!is.na(AOIvalues))
+kmeans_raster2 = AOIr$coastal
+values(kmeans_raster2) = NA
+kmeans_raster2[idx] = F$cluster
+plot(kmeans_raster2)
 ```
 
 ```{r, warning=FALSE}
@@ -223,7 +226,7 @@ mapview(flood_calc2)
 
 Why are some of the cell values not an even number?
 
-- This could be attributed to the fact that flood values are continuous and can fluctuate therefore can have floating points with decimal values. 
+- Since we summed up the entire raster stack into a raster layer pixels are represented by the average values and thus can be decimals. 
 
 
 
