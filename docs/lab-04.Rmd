@@ -7,7 +7,7 @@ output:
     theme: journal
 ---
 
-```{r, message=FALSE, results=FALSE, warning=FALSE}
+```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
 #packages 
 library(tidyverse)
 
@@ -177,9 +177,9 @@ knitr::kable(tess_summary,
 
 #comment on the traits of each tessellation (2.5)
 
--Square grid and hexagonal grid has the least amount of features since they are both pretty simple, easy to assemble and equally spread out. Hexagonal grid would be better for mapping large areas since it fits curve surface better. 
+- Square grid and hexagonal grid has the least amount of features since they are both pretty simple, easy to assemble and equally spread out. Hexagonal grid would be better for mapping large areas since it fits curve surface better. 
 
--The voronoi tessellation and triangulated tessellation above are both simplified. The voronoi tessellation is the most similar to the original counties coverage. Triangulated tessellation has the most amount of features but is more accurate. 
+- The voronoi tessellation and triangulated tessellation above are both simplified. The voronoi tessellation is the most similar to the original counties coverage. Triangulated tessellation has the most amount of features but is more accurate. 
 
 ##Question 3
 ```{r, warning=FALSE}
@@ -258,6 +258,7 @@ point_in_polygon(NID, hex_grid, "id") %>%
 - I would use the hexagonal grid because it's represented on equal area instead of relying on points for calculating the polygons. Unlike the square grid, it fits curved surfaces better and reduce edge effects. 
 
 ##Question 4
+
 - The four dam purposes I choose are recreation (R), navigation (N), debris control (D), and water supply(S). I am interested in analyzing dams with recreation as its main purpose because I was surprised by how it is the most common. I am also interested in analyzing dams with navigation, debris control, and water supply as its purpose because I thought they would be more common. 
 
 ```{r}
@@ -279,7 +280,7 @@ NID %>%
   debris_control
 ```
 
-```{r}
+```{r, results=FALSE}
 #apply dam purposes through PIP. My elected tessellation is hexagonal grid. (4.2)
 point_in_polygon(water_supply, hex_grid, "id") 
 
@@ -303,7 +304,7 @@ plot_pip_2 = function(data, title){
 }
 ```
 
-```{r}
+```{r, results=FALSE}
 #plotting dam purposes on hexagonal grid tessellation 
 point_in_polygon(water_supply, hex_grid, "id") %>%
     plot_pip_2(., "Dam Locations with Water Supply Purpose")

@@ -7,7 +7,7 @@ output:
     theme: journal
 ---
 
-```{r, message=FALSE, results=FALSE, warning=FALSE}
+```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
 library(sf)        # vector manipulation
 library(raster)    # raster manipulation
 library(fasterize) # "faster" raster
@@ -24,7 +24,8 @@ library(knitr)
 basin = read_sf("https://labs.waterdata.usgs.gov/api/nldi/linked-data/nwissite/USGS-11119750/basin")
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
+#loading elevation data
 elevatr::get_elev_raster(basin, z = 13) %>%
   crop(basin) %>%
   mask(basin) ->
@@ -35,7 +36,8 @@ elev_ft = basin_elev*3.281
 writeRaster(elev_ft, "../data/basin_elev_ft.tif", overwrite = TRUE)
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
+#loading buildings data
 osmdata::opq(basin) %>%
   add_osm_feature(key = 'building') %>%
   osmdata_sf() ->
@@ -47,7 +49,8 @@ building = st_centroid(B$osm_polygons) %>%
 railway = dplyr::filter(building, amenity== "railway")
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
+#loading river data
 osmdata::opq(basin) %>%
   add_osm_feature(key = 'waterway', value = "stream") %>%
   osmdata_sf() ->
@@ -84,21 +87,22 @@ flowlines = fasterize::fasterize(flowlines, elev_ft, background = NA)
 writeRaster(flowlines, "../data/flowlines.tif", overwrite=TRUE)
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE, results=FALSE}
 #creating the hydrologically corrected surface
 wbt_breach_depressions("../data/basin_elev_ft.tif", "../data/corrected_basin_elev_ft.tif")
 
 DEM = raster("../data/corrected_basin_elev_ft.tif", overwrite = TRUE)
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE, results=FALSE}
+#creating HAND raster
 wbt_elevation_above_stream("../data/corrected_basin_elev_ft.tif", "../data/flowlines.tif", "../data/HAND.tif")
 
 HAND = raster("../data/HAND.tif", overwrite = TRUE)
 ```
 
 ```{r}
-
+#correcting to local reference datum
 HANDc = HAND+3.69
 
 river = raster("../data/flowlines.tif")
@@ -110,18 +114,18 @@ writeRaster(HANDc, "../data/corrected_HAND.tif", overwrite = TRUE)
 
 
 ```{r}
+#2017 flood impact assessment
 flood17 = raster("../data/corrected_HAND.tif")
 
 flood17[flood17 >= 10.02] = NA
 
 colored = ifelse(!is.na(raster::extract(flood17, building)), "red", "black")
 
+#map the flood
 plot(hillshade, legend = FALSE, col = gray.colors(256, alpha = .5), main = paste0(sum(colored == "red"), " impacted buildings"))
 plot(flood17, col = rev(blues9), legend = FALSE, add = TRUE)
 plot(building$geometry, col = colored, pch = 16, cex=.08, add = TRUE)
 plot(railway$geometry, col= "green", cex=1, pch=16, add = TRUE)
 plot(basin$geometry, border = "black", add = TRUE)
-
-#The map does look accurate. 
 ```
-
+The map does look accurate.

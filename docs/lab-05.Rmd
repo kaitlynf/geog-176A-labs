@@ -7,7 +7,7 @@ output:
     theme: journal
 ---
 
-```{r, message=FALSE, results=FALSE, warning=FALSE}
+```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
 library(raster) # Raster Data handling
 library(tidyverse) # Data Manipulation
 library(getlandsat) # keyless Landsat data (2013-2017)

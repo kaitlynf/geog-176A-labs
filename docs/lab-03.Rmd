@@ -7,7 +7,7 @@ output:
     theme: journal
 ---
 
-```{r}
+```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
 # SPDS
 library(tidyverse)
 library(sf)
@@ -24,8 +24,8 @@ library(knitr)
 library(kableExtra)
 ```
 
-##Question 1 
-```{r}
+## Question 1 
+```{r, message=FALSE, warning=FALSE}
 #continental US States
 USAboundaries::us_states(resolution = "low") %>%
   st_as_sf(coords = c("lng", "lat"), crs = 4326) %>%
@@ -39,7 +39,7 @@ eqdc = '+proj=eqdc +lat_0=40 +lon_0=-96 +lat_1=20 +lat_2=60 +x_0=0 +y_0=0 +datum
 
 st_transform(conus, eqdc) -> conus
 ```
-```{r}
+```{r, message=FALSE}
 #country boundaries for Mexico, the United States of America, and Canada
 rnaturalearthdata::countries110 -> countries110
 
@@ -48,7 +48,7 @@ st_as_sf(countries110, crs = 4326) -> worldboundaries
 st_transform(worldboundaries, eqdc) -> worldboundaries
 ```
 
-```{r}
+```{r, message=FALSE}
 #loading cities from CSV file 
 readr::read_csv("~/github/geog-176A-labs/data/uscities.csv") %>%
   st_as_sf(coords = c("lng", "lat"), crs = 4326) %>%
@@ -57,7 +57,7 @@ readr::read_csv("~/github/geog-176A-labs/data/uscities.csv") %>%
   uscities
 ```
 
-##Question 2
+## Question 2
 ```{r}
 #distance to US borders (2.1)
 
@@ -157,8 +157,8 @@ knitr::kable(top5_to_canada,
     kable_styling(bootstrap_options = "striped")
 ```
 
-##Question 3
-```{r}
+## Question 3
+```{r, warning=FALSE}
 #3.1 10 largest USA cities (by population)
 uscities %>%
   slice_max(population, n = 10) ->
@@ -216,7 +216,7 @@ ggplot() +
   ggthemes::theme_map()
 ```
 
-```{r}
+```{r, warning=FALSE}
 #3.4
 uscities %>%
   select(city, state_name, population) %>%

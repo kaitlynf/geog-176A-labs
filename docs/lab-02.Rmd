@@ -5,11 +5,9 @@ output:
   html_document:
     theme: "journal"
 ---
-```{r}
+```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
 library(rmarkdown)
-```
 
-```{r}
 library(tidyverse)
 
 library(ggplot2)
@@ -17,18 +15,16 @@ library(ggplot2)
 library(ggthemes)
 
 library(dplyr)
-```
-```{r}
 
 library(lubridate)
-```
 
-```{r}
 library(zoo)
+
+library(readxl)
 ```
 
 ## Question 1 
-# COVID Data
+#COVID Data
 ```{r}
 url = 'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv'
 
@@ -55,7 +51,7 @@ knitr::kable(most_cumulative_cases,
              caption = "Most Cumulative Cases by California Counties",
              col.names = c("County", "Cumulative Cases"))
 ```
-# most new cases
+#most new cases
 ```{r}
 new_covid %>%
   filter(date == max(date)) %>%
@@ -75,7 +71,6 @@ knitr::kable(most_new_cases,
 
 #Population Estimate Data
 ```{r}
-library(readxl)
 pop <- read_excel("~/github/geog-176A-labs/data/PopulationEstimates.xls", 
     skip = 2)
 
@@ -120,20 +115,20 @@ knitr::kable(new_cases_per_capita,
 ```
 
 #Covid cases in the last 14 days 
-```{r}
+```{r,results=FALSE}
 covidPop %>%
   mutate(date = as.Date(date)) %>%
     select(date) %>%
   filter(date >= max(date) - 14)
 ```
 ```{r}
-#Difficulty completing this question due to trouble with filtering the date. 
+#unable to complete this question due to trouble with filtering the date. 
 ```
 
 
 ## Question 2 
 #finding average of 7-days of new cases
-```{r}
+```{r, message=FALSE, warning=FALSE}
 covid %>%
   group_by(state, date) %>%
   summarize(cases = sum(cases)) %>%
@@ -180,7 +175,7 @@ covid %>%
 right_join(new_covid4, new_pop4, by = "fips") -> covidPop4
 ```
 
-```{r}
+```{r, results=FALSE}
 covidPop4 %>%
   group_by(state.x, date) %>%
   mutate(newCasesPerCapita4 = newCases/pop2019) %>%
