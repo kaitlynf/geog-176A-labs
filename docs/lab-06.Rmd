@@ -1,0 +1,127 @@
+---
+title: "Geography 176A"
+author: "Kaitlyn Fu"
+subtitle: 'Lab 06: Flood Risk in Mission Creek: Past, Present, Future'
+output:
+  html_document:
+    theme: journal
+---
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+library(sf)        # vector manipulation
+library(raster)    # raster manipulation
+library(fasterize) # "faster" raster
+library(whitebox)  # terrain analysis
+
+# Data libraries
+library(osmdata)   # OSM API
+library(elevatr)   # Elevation  Web Tiles
+
+library(knitr)
+```
+
+```{r}
+basin = read_sf("https://labs.waterdata.usgs.gov/api/nldi/linked-data/nwissite/USGS-11119750/basin")
+```
+
+```{r}
+elevatr::get_elev_raster(basin, z = 13) %>%
+  crop(basin) %>%
+  mask(basin) ->
+  basin_elev
+
+elev_ft = basin_elev*3.281
+
+writeRaster(elev_ft, "../data/basin_elev_ft.tif", overwrite = TRUE)
+```
+
+```{r}
+osmdata::opq(basin) %>%
+  add_osm_feature(key = 'building') %>%
+  osmdata_sf() ->
+  B
+
+building = st_centroid(B$osm_polygons) %>%
+  st_intersection(basin)
+  
+railway = dplyr::filter(building, amenity== "railway")
+```
+
+```{r}
+osmdata::opq(basin) %>%
+  add_osm_feature(key = 'waterway', value = "stream") %>%
+  osmdata_sf() ->
+  W
+
+W$osm_lines %>%
+  st_intersection(basin) %>%
+  dplyr::select(osm_id, name, waterway) ->
+  stream
+```
+
+```{r}
+#hillshade
+hillshade = wbt_hillshade("../data/basin_elev_ft.tif", "../data/basin_elev_ft_hsd.tif")
+
+hillshade = raster("../data/basin_elev_ft_hsd.tif")
+
+plot(hillshade, legend = FALSE, col = gray.colors(256, alpha = .5))
+plot(basin$geometry, add = TRUE)
+plot(stream$geometry, add = TRUE)
+```
+
+```{r}
+#height above near drainage 
+flowlines = stream %>%
+  st_transform(crs(basin)) %>%
+  st_transform(5070) %>%
+  st_buffer(10) %>%
+  st_transform(crs(basin))
+
+#create river raster 
+flowlines = fasterize::fasterize(flowlines, elev_ft, background = NA) 
+
+writeRaster(flowlines, "../data/flowlines.tif", overwrite=TRUE)
+```
+
+```{r}
+#creating the hydrologically corrected surface
+wbt_breach_depressions("../data/basin_elev_ft.tif", "../data/corrected_basin_elev_ft.tif")
+
+DEM = raster("../data/corrected_basin_elev_ft.tif", overwrite = TRUE)
+```
+
+```{r}
+wbt_elevation_above_stream("../data/corrected_basin_elev_ft.tif", "../data/flowlines.tif", "../data/HAND.tif")
+
+HAND = raster("../data/HAND.tif", overwrite = TRUE)
+```
+
+```{r}
+
+HANDc = HAND+3.69
+
+river = raster("../data/flowlines.tif")
+
+HANDc[river == 1] = 0
+
+writeRaster(HANDc, "../data/corrected_HAND.tif", overwrite = TRUE)
+```
+
+
+```{r}
+flood17 = raster("../data/corrected_HAND.tif")
+
+flood17[flood17 >= 10.02] = NA
+
+colored = ifelse(!is.na(raster::extract(flood17, building)), "red", "black")
+
+plot(hillshade, legend = FALSE, col = gray.colors(256, alpha = .5), main = paste0(sum(colored == "red"), " impacted buildings"))
+plot(flood17, col = rev(blues9), legend = FALSE, add = TRUE)
+plot(building$geometry, col = colored, pch = 16, cex=.08, add = TRUE)
+plot(railway$geometry, col= "green", cex=1, pch=16, add = TRUE)
+plot(basin$geometry, border = "black", add = TRUE)
+
+#The map does look accurate. 
+```
+
