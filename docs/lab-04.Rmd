@@ -1,10 +1,9 @@
 ---
-title: "Geography 176A"
+title: 'Lab 04: Tesselations and Point-in-Polygon'
 author: "Kaitlyn Fu"
-subtitle: 'Lab 04: Tesselations and Point-in-Polygon'
 output:
   html_document:
-    theme: journal
+    theme: sandstone
 ---
 
 ```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
@@ -175,7 +174,7 @@ knitr::kable(tess_summary,
   kable_styling(bootstrap_options = "striped", font_size = 15)
 ```
 
-#comment on the traits of each tessellation (2.5)
+Comment on the traits of each tessellation (2.5)
 
 - Square grid and hexagonal grid has the least amount of features since they are both pretty simple, easy to assemble and equally spread out. Hexagonal grid would be better for mapping large areas since it fits curve surface better. 
 
@@ -249,7 +248,7 @@ point_in_polygon(NID, hex_grid, "id") %>%
 
 ```
 
-#Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why? (3.6)
+Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why? (3.6)
 
 - Being able to visualize the point counts on different tessellated surfaces show how the object coverage can look significantly different based on how polygons are shown. 
 
@@ -257,7 +256,7 @@ point_in_polygon(NID, hex_grid, "id") %>%
 
 - I would use the hexagonal grid because it's represented on equal area instead of relying on points for calculating the polygons. Unlike the square grid, it fits curved surfaces better and reduce edge effects. 
 
-##Question 4
+## Question 4
 
 - The four dam purposes I choose are recreation (R), navigation (N), debris control (D), and water supply(S). I am interested in analyzing dams with recreation as its main purpose because I was surprised by how it is the most common. I am also interested in analyzing dams with navigation, debris control, and water supply as its purpose because I thought they would be more common. 
 
@@ -319,7 +318,7 @@ point_in_polygon(debris_control, hex_grid, "id") %>%
     plot_pip_2(., "Dam Locations with Debris Control Purpose")
 ```
 
-#Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coiencide with other geogaphic factors such as river systems, climate, ect?
+Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coiencide with other geogaphic factors such as river systems, climate, ect?
 
 - I chose the hexagonal grid as my tessellation to plot the dam locations. The dam locations make sense to me because I can see how geographical and climate features can affect these locations. For example, dams built with navigation purposes can be found mainly near the Mississippi River. 
 

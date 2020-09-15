@@ -1,10 +1,9 @@
 ---
-title: "Geography 176A"
+title: 'Lab 05: Rasters & Remote Sensing'
 author: "Kaitlyn Fu"
-subtitle: 'Lab 05: Rasters & Remote Sensing'
 output:
   html_document:
-    theme: journal
+    theme: sandstone
 ---
 
 ```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}

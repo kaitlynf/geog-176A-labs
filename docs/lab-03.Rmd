@@ -1,10 +1,9 @@
 ---
-title: "Geography 176A"
+title: 'Lab 03: Distances and the Border Zone'
 author: "Kaitlyn Fu"
-subtitle: 'Lab 03: Distances and the Border Zone'
 output:
   html_document:
-    theme: journal
+    theme: sandstone
 ---
 
 ```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}

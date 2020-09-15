@@ -1,9 +1,9 @@
 ---
+title: "Lab 2: Data Wrangling"
 author: "Kaitlyn Fu"
-title: "Lab 2"
 output: 
   html_document:
-    theme: "journal"
+    theme: "sandstone"
 ---
 ```{r, message=FALSE, results=FALSE, warning=FALSE, echo = FALSE}
 library(rmarkdown)
